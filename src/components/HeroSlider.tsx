@@ -79,13 +79,24 @@ export default function HeroSlider() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [current]);
 
-  // Play / pause videos
+  // Play / pause videos — with canplay retry for slow external CDN loads
   useEffect(() => {
     videoRefs.current.forEach((v, i) => {
       if (!v) return;
       if (i === current) {
-        v.currentTime = 0;
-        v.play().catch(() => {});
+        const startPlay = () => {
+          v.currentTime = 0;
+          v.play().catch(() => {});
+        };
+        // readyState >= 2 (HAVE_CURRENT_DATA) means safe to play
+        if (v.readyState >= 2) {
+          startPlay();
+        } else {
+          // Not yet buffered — wait for canplay event (fires once enough data is ready)
+          v.addEventListener("canplay", startPlay, { once: true });
+          // Also trigger load in case preload stalled
+          v.load();
+        }
       } else {
         v.pause();
       }
@@ -131,8 +142,9 @@ export default function HeroSlider() {
             muted
             loop
             playsInline
-            preload="auto"
+            preload={i <= 1 ? "auto" : "metadata"}
             onCanPlay={() => setLoaded((prev) => { const n = [...prev]; n[i] = true; return n; })}
+            onError={(e) => console.warn(`Video ${i + 1} error:`, e)}
             className="absolute inset-0 w-full h-full object-cover"
           />
           {/* Gradient overlay for text legibility */}
