@@ -7,10 +7,12 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 type BezierCurve = [number, number, number, number];
 
+const VIDEO_BASE = "https://github.com/mahmutbegoviicalmin-coder/hebcomerc/releases/download/v1.0.0";
+
 const slides = [
   {
     id: 1,
-    video: "/video/1.mp4",
+    video: `${VIDEO_BASE}/1.mp4`,
     tag: "Oprema za butike · od 2011.",
     headline1: "Vaš partner u",
     headline2: "savremenoj opremi",
@@ -22,7 +24,7 @@ const slides = [
   },
   {
     id: 2,
-    video: "/video/2.mp4",
+    video: `${VIDEO_BASE}/2.mp4`,
     tag: "Tržnica Arizona, Brčko",
     headline1: "Premium oprema",
     headline2: "za svaki prostor",
@@ -237,7 +239,8 @@ export default function HeroSlider() {
       </div>
 
       {/* ── Bottom bar ── */}
-      <div className="absolute bottom-0 left-0 right-0 flex items-end justify-between px-6 sm:px-10 pb-7 sm:pb-9" style={{ zIndex: 10 }}>
+      <div className="absolute bottom-0 left-0 right-0" style={{ zIndex: 10 }}>
+      <div className="w-full max-w-7xl mx-auto px-6 sm:px-10 pb-7 sm:pb-9 flex items-end justify-between">
 
         {/* Stats */}
         <div className="hidden sm:flex items-center gap-8">
@@ -312,6 +315,7 @@ export default function HeroSlider() {
             <span className="text-white/20 text-sm font-medium"> / 0{slides.length}</span>
           </div>
         </div>
+      </div>
       </div>
 
       {/* ── Left accent line ── */}
