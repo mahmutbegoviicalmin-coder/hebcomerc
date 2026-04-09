@@ -36,9 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
-# large media — host these on a CDN, not git
-public/video/
+# videos managed via git (pushed in small batches due to HTTP limits)
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel

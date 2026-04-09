@@ -7,12 +7,10 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 type BezierCurve = [number, number, number, number];
 
-const VIDEO_BASE = "https://github.com/mahmutbegoviicalmin-coder/hebcomerc/releases/download/v1.0.0";
-
 const slides = [
   {
     id: 1,
-    video: `${VIDEO_BASE}/1.mp4`,
+    video: "/video/1.mp4",
     tag: "Oprema za butike · od 2011.",
     headline1: "Vaš partner u",
     headline2: "savremenoj opremi",
@@ -24,7 +22,7 @@ const slides = [
   },
   {
     id: 2,
-    video: `${VIDEO_BASE}/2.mp4`,
+    video: "/video/2.mp4",
     tag: "Tržnica Arizona, Brčko",
     headline1: "Premium oprema",
     headline2: "za svaki prostor",
@@ -79,8 +77,10 @@ export default function HeroSlider() {
     return () => cancelAnimationFrame(rafRef.current);
   }, [current]);
 
-  // Play / pause videos — with canplay retry for slow external CDN loads
+  // Play / pause videos — with canplay retry for slow CDN loads
   useEffect(() => {
+    const cleanups: (() => void)[] = [];
+
     videoRefs.current.forEach((v, i) => {
       if (!v) return;
       if (i === current) {
@@ -88,19 +88,18 @@ export default function HeroSlider() {
           v.currentTime = 0;
           v.play().catch(() => {});
         };
-        // readyState >= 2 (HAVE_CURRENT_DATA) means safe to play
         if (v.readyState >= 2) {
           startPlay();
         } else {
-          // Not yet buffered — wait for canplay event (fires once enough data is ready)
           v.addEventListener("canplay", startPlay, { once: true });
-          // Also trigger load in case preload stalled
-          v.load();
+          cleanups.push(() => v.removeEventListener("canplay", startPlay));
         }
       } else {
         v.pause();
       }
     });
+
+    return () => cleanups.forEach((fn) => fn());
   }, [current]);
 
   const slide = slides[current];
