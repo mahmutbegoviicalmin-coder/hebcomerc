@@ -4,7 +4,12 @@ import path from "path";
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "products");
 
+const IS_VERCEL = !!process.env.VERCEL;
+
 export async function POST(req: NextRequest) {
+  if (IS_VERCEL) {
+    return NextResponse.json({ error: "Image upload radi samo lokalno. Uploadaj lokalno pa pushaj na GitHub." }, { status: 503 });
+  }
   try {
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];

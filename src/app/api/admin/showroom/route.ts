@@ -4,6 +4,7 @@ import path from "path";
 
 const NANO_BASE  = "https://api.nanobananaapi.ai";
 const UPLOAD_DIR = path.join(process.cwd(), "public", "products");
+const IS_VERCEL  = !!process.env.VERCEL;
 
 // ─── Poll until done ──────────────────────────────────────────────────────────
 async function pollTask(taskId: string, apiKey: string, maxMs = 120_000) {
@@ -86,8 +87,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const localPath = await saveImage(result.resultImageUrl);
+    // On Vercel, return the remote URL directly (can't save to disk)
+    if (IS_VERCEL) {
+      return NextResponse.json({ success: true, path: result.resultImageUrl, taskId });
+    }
 
+    const localPath = await saveImage(result.resultImageUrl);
     return NextResponse.json({ success: true, path: localPath, taskId });
   } catch (err) {
     console.error("Showroom error:", err);

@@ -14,7 +14,10 @@ function readProducts() {
   }
 }
 
+const IS_VERCEL = !!process.env.VERCEL;
+
 function writeProducts(products: unknown[]) {
+  if (IS_VERCEL) throw new Error("VERCEL_READONLY");
   fs.writeFileSync(DATA_FILE, JSON.stringify(products, null, 2), "utf-8");
 }
 
@@ -62,7 +65,10 @@ export async function POST(req: NextRequest) {
     revalidatePath(`/ponuda/${newProduct.slug}`);
 
     return NextResponse.json({ success: true, product: newProduct }, { status: 201 });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === "VERCEL_READONLY") {
+      return NextResponse.json({ error: "Admin write operacije rade samo lokalno. Dodaj proizvod lokalno pa pushaj na GitHub." }, { status: 503 });
+    }
     return NextResponse.json({ error: "Greška pri dodavanju proizvoda." }, { status: 500 });
   }
 }
@@ -87,7 +93,10 @@ export async function DELETE(req: NextRequest) {
     revalidatePath("/ponuda");
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
+    if (err instanceof Error && err.message === "VERCEL_READONLY") {
+      return NextResponse.json({ error: "Admin write operacije rade samo lokalno." }, { status: 503 });
+    }
     return NextResponse.json({ error: "Greška pri brisanju." }, { status: 500 });
   }
 }
