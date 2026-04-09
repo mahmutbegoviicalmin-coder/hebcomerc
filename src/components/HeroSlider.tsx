@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+
+type BezierCurve = [number, number, number, number];
 
 const slides = [
   {
@@ -90,21 +92,23 @@ export default function HeroSlider() {
 
   const slide = slides[current];
 
-  const textVariants = {
+  const EASE: BezierCurve = [0.22, 1, 0.36, 1];
+
+  const textVariants: Variants = {
     enter: { opacity: 0, y: 56, filter: "blur(10px)" },
-    center: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1], delay: 0.25 } },
+    center: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.75, ease: EASE, delay: 0.25 } },
     exit: { opacity: 0, y: -32, filter: "blur(4px)", transition: { duration: 0.35, ease: "easeIn" } },
   };
 
-  const subVariants = {
+  const subVariants: Variants = {
     enter: { opacity: 0, y: 32 },
-    center: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.45 } },
+    center: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE, delay: 0.45 } },
     exit: { opacity: 0, transition: { duration: 0.25 } },
   };
 
-  const ctaVariants = {
+  const ctaVariants: Variants = {
     enter: { opacity: 0, y: 24 },
-    center: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.6 } },
+    center: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE, delay: 0.6 } },
     exit: { opacity: 0, transition: { duration: 0.2 } },
   };
 
