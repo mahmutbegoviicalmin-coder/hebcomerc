@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Image from "next/image";
 import Link from "next/link";
 
@@ -160,8 +161,9 @@ function HistoryPanel({ items, onClose, onSelect }: {
           {items.map((item, i) => (
             <div key={i} onClick={() => { onSelect(item.path); onClose(); }}
               style={{ borderRadius: 10, overflow: "hidden", background: CARD, border: `1px solid ${BORDER}`, marginBottom: 10, cursor: "pointer", transition: "border-color 0.15s" }}>
-              <div style={{ position: "relative", width: "100%", aspectRatio: "16/9" }}>
-                <Image src={item.path} alt="" fill style={{ objectFit: "cover" }} />
+              <div style={{ width: "100%", aspectRatio: "16/9", overflow: "hidden" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.path} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <div style={{ padding: "8px 10px" }}>
                 <p style={{ margin: "0 0 6px", color: MUTED, fontSize: 11, lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{item.prompt}</p>
@@ -250,20 +252,8 @@ export default function ShowroomPage() {
       }
     });
 
-  const uploadImages = async (images: RefImage[]): Promise<string[]> => {
-    const localFiles = images.filter(r => r.isLocal && r.file);
-    const remoteUrls = images.filter(r => !r.isLocal).map(r => r.url);
-    if (localFiles.length === 0) return remoteUrls;
-    const fd = new FormData();
-    localFiles.forEach(r => fd.append("files", r.file!));
-    const upRes = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    const upData = await upRes.json();
-    if (upData.paths) {
-      return [...upData.paths.map((p: string) => `${window.location.origin}${p}`), ...remoteUrls];
-    }
-    return remoteUrls;
-  };
-
+  // Convert all images to base64 and send directly to showroom API
+  // (avoids separate upload step — API handles storage on both local and Vercel)
   const handleGenerate = async () => {
     setError("");
     if (!prompt.trim()) { setError("Opis je obavezan."); return; }
@@ -272,14 +262,18 @@ export default function ShowroomPage() {
 
     setGen(true);
     try {
-      // Upload space images first (they appear first in the array → NanoBanana treats them as primary reference)
-      const spaceUrls   = await uploadImages(spaceImages);
-      const productUrls = await uploadImages(productImages);
-      const imageUrls   = [...spaceUrls, ...productUrls];
+      const spaceB64   = (await Promise.all(spaceImages.map(toBase64))).filter(Boolean);
+      const productB64 = (await Promise.all(productImages.map(toBase64))).filter(Boolean);
 
       const res = await fetch("/api/admin/showroom", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, imageUrls, aspectRatio: ar }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          aspectRatio: ar,
+          spaceImages: spaceB64,
+          productImages: productB64,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.path) {
@@ -363,8 +357,9 @@ export default function ShowroomPage() {
         <div style={{ flex: 1, background: BG, position: "relative", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
           {result ? (
             <>
-              <div style={{ position: "relative", maxWidth: "min(88%,860px)", borderRadius: 14, overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)" }}>
-                <Image src={result} alt="Generirano" width={860} height={480} style={{ display: "block", maxWidth: "100%", maxHeight: "calc(100vh - 110px)", width: "auto", height: "auto" }} />
+              <div style={{ maxWidth: "min(88%,860px)", borderRadius: 14, overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={result} alt="Generirano" style={{ display: "block", maxWidth: "100%", maxHeight: "calc(100vh - 110px)", width: "auto", height: "auto" }} />
               </div>
               {/* Canvas actions */}
               <div style={{ position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 8 }}>
