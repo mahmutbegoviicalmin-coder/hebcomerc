@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
+// Extend Vercel function timeout to 5 minutes (Pro plan max)
+export const maxDuration = 300;
+
 const NANO_BASE  = "https://api.nanobananaapi.ai";
 const UPLOAD_DIR = path.join(process.cwd(), "public", "products");
 const IS_VERCEL  = !!process.env.VERCEL;

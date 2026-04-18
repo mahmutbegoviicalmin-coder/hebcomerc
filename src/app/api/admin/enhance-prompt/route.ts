@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Claude with multiple images can take 15-30s — extend timeout
+export const maxDuration = 60;
+
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 type B64Image = { data: string; mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif" };
