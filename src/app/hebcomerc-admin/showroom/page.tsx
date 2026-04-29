@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import Image from "next/image";
 import Link from "next/link";
@@ -40,6 +40,7 @@ const AR_LABELS: Record<AR, string> = {
 // ─── Types ────────────────────────────────────────────────────────────────────
 type RefImage = { url: string; isLocal: boolean; file?: File };
 type HistItem = { path: string; prompt: string; ar: AR; at: string; spaceCount: number; productCount: number };
+type ProductListItem = { id: string; slug: string; name: string; category: string; images: string[] };
 
 // ─── Format Button ────────────────────────────────────────────────────────────
 function FormatBtn({ ratio, active, onClick }: { ratio: AR; active: boolean; onClick: () => void }) {
@@ -187,9 +188,7 @@ function HistoryPanel({ items, onClose, onSelect }: {
 export default function ShowroomPage() {
   const ar: AR = "16:9";
   const [prompt, setPrompt]       = useState("");
-  // Space images (photos of the room/showroom to place products in)
   const [spaceImages, setSpaceImages] = useState<RefImage[]>([]);
-  // Product images (products to be placed inside the space)
   const [productImages, setProductImages] = useState<RefImage[]>([]);
   const [generating, setGen]      = useState(false);
   const [error, setError]         = useState("");
@@ -198,6 +197,54 @@ export default function ShowroomPage() {
   const [showHist, setHist]       = useState(false);
   const [copied, setCopied]       = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+
+  // Product catalogue picker
+  const [catalogue, setCatalogue]       = useState<ProductListItem[]>([]);
+  const [pickerOpen, setPickerOpen]     = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/products-list")
+      .then(r => r.json())
+      .then(setCatalogue)
+      .catch(() => {});
+  }, []);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [pickerOpen]);
+
+  const addProductFromCatalogue = (product: ProductListItem) => {
+    const remaining = 9 - productImages.length;
+    if (remaining <= 0) return;
+    const newImgs: RefImage[] = product.images
+      .slice(0, remaining)
+      .map(url => ({ url, isLocal: false }));
+    setProductImages(prev => [...prev, ...newImgs]);
+    setPickerOpen(false);
+    setPickerSearch("");
+  };
+
+  const filteredCatalogue = catalogue.filter(p =>
+    p.name.toLowerCase().includes(pickerSearch.toLowerCase()) ||
+    p.category.toLowerCase().includes(pickerSearch.toLowerCase())
+  );
+
+  // Group by category for display
+  const grouped = filteredCatalogue.reduce<Record<string, ProductListItem[]>>((acc, p) => {
+    if (!acc[p.category]) acc[p.category] = [];
+    acc[p.category].push(p);
+    return acc;
+  }, {});
 
   const allImages = [...spaceImages, ...productImages];
 
@@ -459,7 +506,7 @@ export default function ShowroomPage() {
               />
             </div>
 
-            {/* ─ Zone 2: Proizvodi ─ */}
+            {/* ─ Zone 2: Proizvodi iz kataloga ─ */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
                 <div style={{ width: 22, height: 22, borderRadius: 6, background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.25)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -472,9 +519,109 @@ export default function ShowroomPage() {
                   {productImages.length} / 9
                 </span>
               </div>
-              <p style={{ margin: "0 0 10px", color: MUTED2, fontSize: 10, lineHeight: 1.5 }}>
-                Fotografije proizvoda koje želiš smjestiti u prostor. AI ih prirodno rasporedi unutar scene.
-              </p>
+
+              {/* Catalogue picker */}
+              <div ref={pickerRef} style={{ position: "relative", marginBottom: 8 }}>
+                <button
+                  onClick={() => setPickerOpen(o => !o)}
+                  style={{
+                    width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                    background: pickerOpen ? CARD2 : CARD, border: `1.5px solid ${pickerOpen ? "#8b5cf6" : BORDER}`,
+                    borderRadius: 9, padding: "8px 11px", cursor: "pointer", transition: "all 0.15s",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                    <svg width="12" height="12" fill="none" stroke="#c4b5fd" strokeWidth="2" viewBox="0 0 24 24">
+                      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span style={{ color: MUTED, fontSize: 11 }}>Odaberi iz kataloga...</span>
+                  </div>
+                  <svg width="10" height="10" fill="none" stroke={MUTED2} strokeWidth="2" viewBox="0 0 24 24"
+                    style={{ transform: pickerOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+
+                {pickerOpen && (
+                  <div style={{
+                    position: "absolute", top: "calc(100% + 5px)", left: 0, right: 0, zIndex: 100,
+                    background: "#0e1018", border: `1.5px solid ${BORDER}`,
+                    borderRadius: 10, boxShadow: "0 16px 48px rgba(0,0,0,0.7)", overflow: "hidden",
+                    maxHeight: 320,
+                  }}>
+                    {/* Search */}
+                    <div style={{ padding: "8px 10px", borderBottom: `1px solid ${BORDER}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, background: CARD, borderRadius: 7, padding: "6px 10px", border: `1px solid ${BORDER}` }}>
+                        <svg width="11" height="11" fill="none" stroke={MUTED2} strokeWidth="2" viewBox="0 0 24 24">
+                          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input
+                          autoFocus
+                          value={pickerSearch}
+                          onChange={e => setPickerSearch(e.target.value)}
+                          placeholder="Pretraži proizvode..."
+                          style={{ background: "none", border: "none", outline: "none", color: TEXT, fontSize: 11, width: "100%" }}
+                        />
+                        {pickerSearch && (
+                          <button onClick={() => setPickerSearch("")} style={{ background: "none", border: "none", color: MUTED2, cursor: "pointer", padding: 0, fontSize: 13 }}>×</button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Results */}
+                    <div style={{ overflowY: "auto", maxHeight: 255 }}>
+                      {Object.keys(grouped).length === 0 ? (
+                        <p style={{ textAlign: "center", color: MUTED2, fontSize: 11, padding: "20px 0", margin: 0 }}>Nema rezultata</p>
+                      ) : (
+                        Object.entries(grouped).map(([cat, items]) => (
+                          <div key={cat}>
+                            <p style={{ margin: 0, padding: "6px 10px 3px", color: MUTED2, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, background: "#090b14" }}>
+                              {cat}
+                            </p>
+                            {items.map(product => (
+                              <button
+                                key={product.id}
+                                onClick={() => addProductFromCatalogue(product)}
+                                style={{
+                                  width: "100%", display: "flex", alignItems: "center", gap: 9,
+                                  padding: "7px 10px", background: "none", border: "none", cursor: "pointer",
+                                  textAlign: "left", transition: "background 0.12s",
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = CARD)}
+                                onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                              >
+                                {/* Thumbnail */}
+                                {product.images[0] ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img
+                                    src={product.images[0]}
+                                    alt=""
+                                    style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0, border: `1px solid ${BORDER}` }}
+                                  />
+                                ) : (
+                                  <div style={{ width: 36, height: 36, borderRadius: 6, background: CARD2, border: `1px solid ${BORDER}`, flexShrink: 0 }} />
+                                )}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ margin: 0, color: TEXT, fontSize: 11, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {product.name}
+                                  </p>
+                                  <p style={{ margin: 0, color: MUTED2, fontSize: 9, marginTop: 1 }}>
+                                    {product.images.length} {product.images.length === 1 ? "slika" : "slike"}
+                                  </p>
+                                </div>
+                                <span style={{ background: "rgba(139,92,246,0.15)", color: "#c4b5fd", fontSize: 9, padding: "2px 7px", borderRadius: 4, fontWeight: 600, flexShrink: 0 }}>
+                                  + Dodaj
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <MiniZone
                 images={productImages} onChange={setProductImages} maxImages={9} accent="#8b5cf6"
                 emptyLabel="Prevuci slike proizvoda" emptyHint="JPG, PNG, WEBP"
