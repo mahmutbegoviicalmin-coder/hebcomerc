@@ -1,23 +1,14 @@
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts, products, type Product } from "@/data/products";
 import ProductDetailClient from "./ProductDetailClient";
-import fs from "fs";
-import path from "path";
+import { readCustomProducts } from "@/lib/custom-products-store";
 
 export function generateStaticParams() {
   if (process.env.NODE_ENV === "development") return [];
   return products.map((p) => ({ slug: p.slug }));
 }
 
-function getCustomProducts(): Product[] {
-  try {
-    const file = path.join(process.cwd(), "public", "data", "custom-products.json");
-    const raw = fs.readFileSync(file, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return [];
-  }
-}
+export const dynamic = "force-dynamic";
 
 export default async function ProductDetailPage({
   params,
@@ -29,7 +20,7 @@ export default async function ProductDetailPage({
   let product: Product | null | undefined = getProductBySlug(slug);
 
   if (!product) {
-    const custom = getCustomProducts();
+    const custom = await readCustomProducts();
     product = custom.find((p) => p.slug === slug) ?? null;
   }
 

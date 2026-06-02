@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
           .replace(/\s+/g, "-")
           .replace(/[^a-zA-Z0-9.\-_]/g, "")
           .toLowerCase();
-        const filename = `showroom_${Date.now()}_${safeName}`;
+        const filename = `products/custom_${Date.now()}_${safeName}`;
         const blob = await put(filename, file, { access: "public" });
         urls.push(blob.url);
       }

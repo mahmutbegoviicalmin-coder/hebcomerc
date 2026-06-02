@@ -18,7 +18,7 @@ function CatalogContent() {
   const [customProducts, setCustomProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    fetch("/data/custom-products.json")
+    fetch("/api/custom-products")
       .then((r) => r.json())
       .then((data) => Array.isArray(data) && setCustomProducts(data))
       .catch(() => {});
